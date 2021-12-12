@@ -32,25 +32,7 @@ public class CSVUtilTest {
     }
 
     @Test
-    void stream_filtrarJugadoresMayoresA35() {
-        List<Player> list = csvUtilFile.getPlayers();
-        Map<String, List<Player>> listFilter = list.parallelStream()
-                .filter(player -> player.age >= 35)
-                .map(player -> {
-                    player.name = player.name.toUpperCase(Locale.ROOT);
-                    return player;
-                })
-                .flatMap(playerA -> list.parallelStream()
-                        .filter(playerB -> playerA.club.equals(playerB.club))
-                )
-                .distinct()
-                .collect(Collectors.groupingBy(Player::getClub));
-
-        assert listFilter.size() == 322;
-    }
-
-    @Test
-    void reactive_filtrarJugadoresMayoresA35() {
+    void reactive_filtrarJugadoresMayoresA35(){
         List<Player> list = csvUtilFile.getPlayers();
         Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
         Mono<Map<String, Collection<Player>>> listFilter = listFlux
@@ -62,7 +44,7 @@ public class CSVUtilTest {
                 .buffer(100)
                 .flatMap(playerA -> listFlux
                         .filter(playerB -> playerA.stream()
-                                .anyMatch(a -> a.club.equals(playerB.club)))
+                                .anyMatch(a ->  a.club.equals(playerB.club)))
                 )
                 .distinct()
                 .collectMultimap(Player::getClub);
@@ -71,7 +53,7 @@ public class CSVUtilTest {
     }
 
     @Test
-    void reactive_filtrarJugadoresMayoresA35PorUnEquipoEspecifico() {
+    void reactive_filtrarJugadoresMayoresA34PorUnEquipoEspecifico(){
         List<Player> list = csvUtilFile.getPlayers();
         Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
         Mono<Map<String, Collection<Player>>> listFilter = listFlux
@@ -81,27 +63,29 @@ public class CSVUtilTest {
                     return player;
                 })
                 .collectMultimap(Player::getClub);
-        listFilter.block().forEach((equipo, players) -> {
+        listFilter.block().forEach((equipo,players)->{
             System.out.println(equipo);
-            players.stream().forEach(p -> System.out.println(p.name + "-" + p.age));
-            assert players.size() == 4;
+            players.stream().forEach(p-> System.out.println(p.name+"-"+p.age));
+            assert players.size()==4;
         });
     }
 
     @Test
-    void reactive_filtrarNacionalidad() {
+    void reactive_filtrarNacionalidadYRanking() {
         List<Player> list = csvUtilFile.getPlayers();
         Flux<Player> listFlux = Flux.fromStream(list.parallelStream()).cache();
         Mono<Map<String, Collection<Player>>> listFilter = listFlux
-                .filter(player -> player.age == 27) //se pusó el filter para que no lleguen tantos datos
+                .filter(player -> player.age == 27) //se añade el filter para que no impriman todos los datos debido a la cantidad
                 .map(player -> {
                     player.name = player.name.toUpperCase(Locale.ROOT);
                     return player;
                 })
+                .sort((p,w)->w.winners-p.winners)
                 .collectMultimap(Player::getNational);
+
         listFilter.block().forEach((national, players) -> {
-            System.out.println("\n" + national);
-            players.stream().sorted((p, w) -> w.winners - p.winners).forEach(p -> System.out.println(p.name + "- Partidos ganados: " + p.winners));
+            System.out.println("\n"+national);
+            players.stream().forEach(p -> System.out.println(p.name + "- Partidos ganados: " +p.winners));
         });
     }
 
